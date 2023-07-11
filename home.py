@@ -72,7 +72,7 @@ for i in range(len(recommended_df)):
     name, latitude, longitude = recommended_df.iloc[i][['name', 'latitude', 'longitude']]
     popup_text = f"Name: {name})"
     distance = haversine((my_latitude, my_longitude), (latitude, longitude), unit='m')
-    if distance <= 200:  # 200m 이내인 경우에만 마커 추가
+    if distance <= 500:  # 500m 이내인 경우에만 마커 추가
         has_recommended_coordinates = True
         folium.Marker([latitude, longitude], popup=popup_text, icon=folium.Icon(color='green')).add_to(tile_seoul_map)
 
@@ -81,7 +81,7 @@ for i in range(len(recommended_df)):
 
 # 200미터 이내에 추천할 좌표가 없는 경우 메시지 출력
 if not has_recommended_coordinates:
-    st.warning("‼️ 200m 이내에 추천할 화장실이 없습니다.")
+    st.warning("‼️ 500m 이내에 추천할 화장실이 없습니다.")
 
 # HTML로 변환
 map_html = tile_seoul_map.get_root().render()
