@@ -10,19 +10,19 @@ def load_data():
     df = pd.read_csv("https://roasample.cafe24.com/data/Seoul_toilet_locations.csv", encoding="utf-8")
     return df
 
-
-# # 내 위치 정보를 설정
-# my_latitude = st.number_input("위도(Latitude)", value=37.5, key="latitude")
-# my_longitude = st.number_input("경도(Longitude)", value=126.90, key="longitude")
-
 # 쿼리 파라미터 가져오기
 query_params = st.experimental_get_query_params()
 
-if "latitude" in query_params:
-    my_latitude = float(query_params["latitude"][0])
+if "latitude" in query_params and "longitude" in query_params:
+    if "latitude" in query_params:
+        my_latitude = float(query_params["latitude"][0])
 
-if "longitude" in query_params:
-    my_longitude = float(query_params["longitude"][0])
+    if "longitude" in query_params:
+        my_longitude = float(query_params["longitude"][0])
+else:
+    # 내 위치 정보를 설정
+    my_latitude = st.sidebar.number_input("위도(Latitude)", value=37.5, key="latitude")
+    my_longitude = st.sidebar.number_input("경도(Longitude)", value=126.90, key="longitude")
 
 # 거리에 따른 점수를 부여하여 Distance Score 컬럼 업데이트
 def calculate_distance_score(df, my_latitude, my_longitude):
@@ -80,7 +80,7 @@ for i in range(len(recommended_df)):
     name, latitude, longitude = recommended_df.iloc[i][['name', 'latitude', 'longitude']]
     popup_text = f"Name: {name})"
     distance = haversine((my_latitude, my_longitude), (latitude, longitude), unit='m')
-    if distance <= 1000:  # 1000m 이내인 경우에만 마커 추가
+    if distance <= 500:  # 1000m 이내인 경우에만 마커 추가
         has_recommended_coordinates = True
         folium.Marker([latitude, longitude], popup=popup_text, icon=folium.Icon(color='green')).add_to(tile_seoul_map)
 
@@ -89,7 +89,7 @@ for i in range(len(recommended_df)):
 
 # 200미터 이내에 추천할 좌표가 없는 경우 메시지 출력
 if not has_recommended_coordinates:
-    st.warning("‼️ 1000m 이내에 추천할 화장실이 없습니다.")
+    st.warning("‼️ 500m 이내에 추천할 화장실이 없습니다.")
 
 # HTML로 변환
 map_html = tile_seoul_map.get_root().render()
