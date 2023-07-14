@@ -21,8 +21,8 @@ if "latitude" in query_params and "longitude" in query_params:
         my_longitude = float(query_params["longitude"][0])
 else:
     # 내 위치 정보를 설정
-    my_latitude = st.sidebar.number_input("위도(Latitude)", value=37.5, key="latitude")
-    my_longitude = st.sidebar.number_input("경도(Longitude)", value=126.90, key="longitude")
+    my_latitude = st.sidebar.number_input("위도(Latitude)", value=37.5, key="latitude", format="%6f")
+    my_longitude = st.sidebar.number_input("경도(Longitude)", value=126.90, key="longitude", format="%6f")
 
 # 거리에 따른 점수를 부여하여 Distance Score 컬럼 업데이트
 def calculate_distance_score(df, my_latitude, my_longitude):
