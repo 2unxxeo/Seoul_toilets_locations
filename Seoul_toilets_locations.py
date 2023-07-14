@@ -10,6 +10,7 @@ def load_data():
     df = pd.read_csv("https://roasample.cafe24.com/data/Seoul_toilet_locations.csv", encoding="utf-8")
     return df
 
+
 # 위치 정보 파라미터로 받아서 입력
 query_params = st.experimental_get_query_params()
 
@@ -23,6 +24,7 @@ else:
     # 내 위치 정보를 설정
     my_latitude = st.sidebar.number_input("위도(Latitude)", value=37.5, key="latitude", format="%6f")
     my_longitude = st.sidebar.number_input("경도(Longitude)", value=126.90, key="longitude", format="%6f")
+
 
 # 거리에 따른 점수를 부여하여 Distance Score 컬럼 업데이트
 def calculate_distance_score(df, my_latitude, my_longitude):
@@ -75,21 +77,23 @@ tile_seoul_map = folium.Map(location=[my_latitude, my_longitude], zoom_start=16,
 folium.Marker([my_latitude, my_longitude], popup="My Location", icon=folium.Icon(color='red')).add_to(tile_seoul_map)
 
 has_recommended_coordinates = False
+
+list = []
+dist = []
 # 추천하는 좌표에 다른 색상의 마커로 추가
 for i in range(len(recommended_df)):
     name, latitude, longitude = recommended_df.iloc[i][['name', 'latitude', 'longitude']]
     popup_text = f"Name: {name})"
     distance = haversine((my_latitude, my_longitude), (latitude, longitude), unit='m')
+    dist.append(int(distance))
     if distance <= 200:  # 200m 이내인 경우에만 마커 추가
         has_recommended_coordinates = True
         folium.Marker([latitude, longitude], popup=popup_text, icon=folium.Icon(color='green')).add_to(tile_seoul_map)
 
-        # 좌표 정보 출력
-        st.write(f"{i+1} : {name}")
-
-# 200미터 이내에 추천할 좌표가 없는 경우 메시지 출력
-if not has_recommended_coordinates:
-    st.warning("‼️ 200m 이내에 추천할 화장실이 없습니다.")
+        list.append(f"{name}")
+        # st.write(f"{i+1} : {name}")
+    else:
+        list.append(1)
 
 # HTML로 변환
 map_html = tile_seoul_map.get_root().render()
@@ -97,3 +101,49 @@ map_html = tile_seoul_map.get_root().render()
 # Streamlit 애플리케이션에 표시
 st.title("Seoul Toilet Locations")
 html(map_html, height=500)
+
+# 좌표 정보 출력
+css = """
+    <style>
+        @font-face {
+            font-family: 'GoryeongStrawberry';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2304-01@1.0/GoryeongStrawberry.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+        }
+        .recommend {
+            width : 100%;
+            background : #F0F8FE;
+            padding: 20px;
+            padding-left : 30px;
+            border-radius : 20px;
+        }
+
+        .recommend p{
+            font-size: 27px;
+            font-family : 'GoryeongStrawberry';
+            color : #364150;
+        }
+
+        .red:first-child{
+            color : red;
+            font-size: 25px;
+        }
+    </style>
+"""
+
+st.markdown(css, unsafe_allow_html=True)
+div_content = ""
+for i in range(3):
+    if i == 0:
+        div_content += f"<p>{list[i]} : {dist[i]}m &nbsp <span class='red'>힘내!</span></p>"
+    else:
+        div_content += f"<p>{list[i]} : {dist[i]}m</p>"
+
+styled_div = f"<div class='recommend'>{div_content}</div>"
+
+# 200미터 이내에 추천할 좌표가 없는 경우 메시지 출력
+if not has_recommended_coordinates:
+    st.warning("‼️ 200m 이내에 추천할 화장실이 없습니다. 수풀로 ㄱㄱ")
+else:
+    st.markdown(styled_div, unsafe_allow_html=True)
