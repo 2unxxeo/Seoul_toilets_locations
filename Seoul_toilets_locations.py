@@ -1,13 +1,15 @@
+from datetime import datetime
+import pytz
+import pandas as pd
 import streamlit as st
 import folium
-import pandas as pd
 from haversine import haversine
 from streamlit.components.v1 import html
 
 
 def load_data():
     # 데이터 로드
-    df = pd.read_csv("https://roasample.cafe24.com/data/Seoul_toilet_locations.csv", encoding="utf-8")
+    df = pd.read_csv("https://roasample.cafe24.com/data/Seoul_locations_time_congestion_random.csv", encoding="utf-8")
     return df
 
 
@@ -28,6 +30,7 @@ else:
 
 # 거리에 따른 점수를 부여하여 Distance Score 컬럼 업데이트
 def calculate_distance_score(df, my_latitude, my_longitude):
+    distance_scores = []
     for index, row in df.iterrows():
         point_latitude = row['latitude']
         point_longitude = row['longitude']
@@ -37,38 +40,60 @@ def calculate_distance_score(df, my_latitude, my_longitude):
 
         # 거리에 따라 점수 부여
         if distance <= 50:  # 50m 이내
-            df.loc[index, 'Distance Score'] = 10
+            distance_scores.append(10)
         elif distance <= 100:  # 50m 초과 100m 이하
-            df.loc[index, 'Distance Score'] = 8
+            distance_scores.append(8)
         elif distance <= 150:  # 100m 초과 150m 이하
-            df.loc[index, 'Distance Score'] = 6
+            distance_scores.append(6)
         elif distance <= 200:  # 150m 초과 200m 이하
-            df.loc[index, 'Distance Score'] = 4
+            distance_scores.append(4)
         elif distance <= 300:  # 200m 초과 300m 이하
-            df.loc[index, 'Distance Score'] = 2
+            distance_scores.append(2)
         else:
-            df.loc[index, 'Distance Score'] = 0
+            distance_scores.append(0)
 
-    # 데이터 타입을 숫자로 변환
-    df['Distance Score'] = df['Distance Score'].astype(int)
-    df['Congestion Score'] = df['Congestion Score'].astype(int)
+    return distance_scores
 
 
 # 데이터 로드
 df = load_data()
 
 # 거리 점수 계산
-calculate_distance_score(df, my_latitude, my_longitude)
+df['Distance Score'] = calculate_distance_score(df, my_latitude, my_longitude)
 
-# Final Score 컬럼 추가
-df['Final Score'] = df["Distance Score"] - df["Congestion Score"]
+# 거리 점수에 따라 추천하는 좌표 추출
+df = df.sort_values('Distance Score', ascending=False)  # Distance Score에 따라 내림차순으로 정렬
+recommended_df = df.head(10)  # 상위 10개 추출
 
-# 추천하는 좌표 개수 설정
-recommendations = min(3, len(df))  # 추천하는 좌표 개수를 원하는 값과 데이터프레임의 크기 중 작은 값으로 설정
+# 현재 시간 가져오기
+now = datetime.now()
+korea_timezone = pytz.timezone("Asia/Seoul")
+korea_time = now.astimezone(korea_timezone)
+time_str = korea_time.strftime("%H")
 
-# 거리 점수와 Final Score에 따라 추천하는 좌표 추출
-df = df.sort_values(['Distance Score', 'Final Score'], ascending=[False, False])  # Distance Score와 Final Score에 따라 정렬
-recommended_df = df.head(recommendations)  # 상위 추천 개수만큼 추출
+# 상위 3개 추천할 거라고 가정
+top_recommendations = 3
+
+# 상위 10개 추천된 좌표에 대해 작업 수행
+for index, row in recommended_df.iterrows():
+    latitude = row['latitude']  # 위도 추출
+    longitude = row['longitude']  # 경도 추출
+
+    # 해당 좌표를 df에서 찾기
+    coordinates_mask = (df['latitude'] == latitude) & (df['longitude'] == longitude)
+    coordinate_row = df.loc[coordinates_mask].head(1)
+
+    # time_str에 해당하는 컬럼값 가져오기
+    column_value = coordinate_row[time_str].values[0]
+
+    # Final Score 계산
+    coordinate_row['Final Score'] = coordinate_row['Distance Score'] - column_value
+
+    # 추천 결과에 추가
+    recommended_df.loc[index, 'Final Score'] = coordinate_row['Final Score'].values[0]
+
+# Final Score에 따라 내림차순으로 정렬하여 상위 3개 추천
+final_recommendations = recommended_df.sort_values('Final Score', ascending=False).head(top_recommendations)
 
 # 지도 생성
 tile_seoul_map = folium.Map(location=[my_latitude, my_longitude], zoom_start=16, tiles="Stamen Terrain")
@@ -78,22 +103,19 @@ folium.Marker([my_latitude, my_longitude], popup="My Location", icon=folium.Icon
 
 has_recommended_coordinates = False
 
-list = []
 dist = []
-# 추천하는 좌표에 다른 색상의 마커로 추가
-for i in range(len(recommended_df)):
-    name, latitude, longitude = recommended_df.iloc[i][['name', 'latitude', 'longitude']]
+list = []
+# 추천하는 좌표에 다른 색상의 마커로 추가 (상위 3개만)
+for i in range(3):
+    name, latitude, longitude = final_recommendations.iloc[i][['name', 'latitude', 'longitude']]
     popup_text = f"Name: {name})"
     distance = haversine((my_latitude, my_longitude), (latitude, longitude), unit='m')
     dist.append(int(distance))
-    if distance <= 200:  # 200m 이내인 경우에만 마커 추가
+    if distance <= 300:  # 300m 이내인 경우에만 마커 추가
         has_recommended_coordinates = True
         folium.Marker([latitude, longitude], popup=popup_text, icon=folium.Icon(color='green')).add_to(tile_seoul_map)
 
-        list.append(f"{name}")
-        # st.write(f"{i+1} : {name}")
-    else:
-        list.append(1)
+    list.append(f"{name} | 혼잡도: {final_recommendations.iloc[i][time_str]} | 거리: {dist[i]}m")
 
 # HTML로 변환
 map_html = tile_seoul_map.get_root().render()
@@ -136,9 +158,9 @@ st.markdown(css, unsafe_allow_html=True)
 div_content = ""
 for i in range(3):
     if i == 0:
-        div_content += f"<p>{list[i]} : {dist[i]}m &nbsp <span class='red'>힘내!</span></p>"
+        div_content += f"<p>{list[i]} &nbsp <span class='red'>힘내!</span></p>"
     else:
-        div_content += f"<p>{list[i]} : {dist[i]}m</p>"
+        div_content += f"<p>{list[i]}</p>"
 
 styled_div = f"<div class='recommend'>{div_content}</div>"
 
