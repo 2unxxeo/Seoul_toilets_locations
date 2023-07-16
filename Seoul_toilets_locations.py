@@ -166,6 +166,6 @@ styled_div = f"<div class='recommend'>{div_content}</div>"
 
 # 200미터 이내에 추천할 좌표가 없는 경우 메시지 출력
 if not has_recommended_coordinates:
-    st.warning("‼️ 200m 이내에 추천할 화장실이 없습니다. 수풀로 ㄱㄱ")
+    st.warning("‼️ 300m 이내에 추천할 화장실이 없습니다. 수풀로 ㄱㄱ")
 else:
     st.markdown(styled_div, unsafe_allow_html=True)
