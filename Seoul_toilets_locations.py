@@ -14,7 +14,7 @@ def load_data():
 
 def load_data1():
     # 데이터 로드
-    df1 = pd.read_csv("a.csv", encoding="utf-8")
+    df1 = pd.read_csv("https://roasample.cafe24.com/data/a.csv", encoding="utf-8")
     return df1
 
 # 위치 정보 파라미터로 받아서 입력
