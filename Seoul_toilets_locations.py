@@ -1,6 +1,7 @@
 from datetime import datetime
 import pytz
 import pandas as pd
+import requests
 import streamlit as st
 import folium
 from haversine import haversine
@@ -61,13 +62,10 @@ def calculate_distance_score(df, my_latitude, my_longitude):
 
 # 데이터 로드
 df = load_data()
-
-loaded_df = load_data1()
+df1 = load_data1()
 
 if (df[['latitude', 'longitude']] == df1[['latitude', 'longitude']]).all().all():
     df['address'] = df1['address']
-
-df['address'] = loaded_df
 
 # 거리 점수 계산
 df['Distance Score'] = calculate_distance_score(df, my_latitude, my_longitude)
@@ -113,6 +111,8 @@ tile_seoul_map = folium.Map(location=[my_latitude, my_longitude], zoom_start=16,
 folium.Marker([my_latitude, my_longitude], popup="My Location", icon=folium.Icon(color='red')).add_to(tile_seoul_map)
 
 has_recommended_coordinates = False
+
+
 
 dist = []
 list = []
@@ -180,3 +180,33 @@ if not has_recommended_coordinates:
     st.warning("‼️ 300m 이내에 추천할 화장실이 없습니다. 수풀로 ㄱㄱ")
 else:
     st.markdown(styled_div, unsafe_allow_html=True)
+
+
+# 카카오맵에서 주소 받아오기
+# url = 'https://dapi.kakao.com/v2/local/geo/coord2address.json'
+#
+# df['address'] = ''
+#
+# headers = {'Authorization': 'KakaoAK {}'.format('6ba25524c4e2e89c413a3b1ecb9d23c1')}
+#
+# for index, row in df.iterrows():
+#     latitude = row['latitude']
+#     longitude = row['longitude']
+#
+#     if latitude and longitude:
+#         params = {'x': longitude, 'y': latitude}
+#         response = requests.get(url, headers=headers, params=params)
+#         data = response.json()
+#
+#         # 응답에서 주소 정보 추출
+#         documents = data.get('documents', [])
+#
+#         if documents:
+#             address = documents[0].get('address', {}).get('address_name', '')
+#             df.loc[index, 'address'] = address
+#         else:
+#             df.loc[index, 'address'] = '주소를 찾을 수 없음'
+#
+# df[['latitude', 'longitude', 'address']].to_csv('di.csv', index=False)
+# st.write(df[['latitude', 'longitude', 'address']].head())
+
