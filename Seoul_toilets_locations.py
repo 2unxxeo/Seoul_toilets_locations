@@ -132,7 +132,7 @@ for i in range(3):
 map_html = tile_seoul_map.get_root().render()
 
 # Streamlit 애플리케이션에 표시
-st.title("Seoul Toilet Locations")
+st.title("Seoul Toilets Locations")
 html(map_html, height=500)
 
 # 좌표 정보 출력
