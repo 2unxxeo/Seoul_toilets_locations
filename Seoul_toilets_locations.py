@@ -64,6 +64,9 @@ df = load_data()
 
 loaded_df = load_data1()
 
+if (df[['latitude', 'longitude']] == df1[['latitude', 'longitude']]).all().all():
+    df['address'] = df1['address']
+
 df['address'] = loaded_df
 
 # 거리 점수 계산
