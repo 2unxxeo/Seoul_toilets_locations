@@ -12,6 +12,10 @@ def load_data():
     df = pd.read_csv("https://roasample.cafe24.com/data/Seoul_locations_time_congestion_random.csv", encoding="utf-8")
     return df
 
+def load_data1():
+    # 데이터 로드
+    df1 = pd.read_csv("a.csv", encoding="utf-8")
+    return df1
 
 # 위치 정보 파라미터로 받아서 입력
 query_params = st.experimental_get_query_params()
@@ -57,6 +61,10 @@ def calculate_distance_score(df, my_latitude, my_longitude):
 
 # 데이터 로드
 df = load_data()
+
+loaded_df = load_data1()
+
+df['address'] = loaded_df
 
 # 거리 점수 계산
 df['Distance Score'] = calculate_distance_score(df, my_latitude, my_longitude)
@@ -107,8 +115,8 @@ dist = []
 list = []
 # 추천하는 좌표에 다른 색상의 마커로 추가 (상위 3개만)
 for i in range(3):
-    name, latitude, longitude = final_recommendations.iloc[i][['name', 'latitude', 'longitude']]
-    popup_text = f"Name: {name})"
+    name, latitude, longitude, address = final_recommendations.iloc[i][['name', 'latitude', 'longitude', 'address']]
+    popup_text = f"<div style='width: 200px;'>Name: {name} <br> Address: {address}</div>"
     distance = haversine((my_latitude, my_longitude), (latitude, longitude), unit='m')
     dist.append(int(distance))
     if distance <= 300:  # 300m 이내인 경우에만 마커 추가
@@ -142,14 +150,14 @@ css = """
         }
 
         .recommend p{
-            font-size: 27px;
+            font-size: 22px;
             font-family : 'GoryeongStrawberry';
             color : #364150;
         }
 
         .red:first-child{
             color : red;
-            font-size: 25px;
+            font-size: 20px;
         }
     </style>
 """
@@ -164,7 +172,7 @@ for i in range(3):
 
 styled_div = f"<div class='recommend'>{div_content}</div>"
 
-# 200미터 이내에 추천할 좌표가 없는 경우 메시지 출력
+# 300미터 이내에 추천할 좌표가 없는 경우 메시지 출력
 if not has_recommended_coordinates:
     st.warning("‼️ 300m 이내에 추천할 화장실이 없습니다. 수풀로 ㄱㄱ")
 else:
